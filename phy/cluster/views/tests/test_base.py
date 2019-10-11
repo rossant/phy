@@ -56,7 +56,8 @@ def test_manual_clustering_view_2(qtbot, gui):
     emit('select', Supervisor(), cluster_ids=[0, 1])
 
     qtbot.wait(200)
-    # qtbot.stop()
+    qtbot.stop()
+
     v.canvas.close()
     v.dock_widget.close()
     qtbot.wait(100)

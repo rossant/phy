@@ -7,16 +7,13 @@
 # Imports
 # -----------------------------------------------------------------------------
 
-from datetime import datetime
 from functools import partial
 import gc
 import logging
-from pathlib import Path
 
 import numpy as np
 
 from phylib.utils import Bunch, connect, unconnect, emit
-from phylib.utils._misc import phy_config_dir
 from phylib.utils.geometry import range_transform
 from phy.gui import Actions
 from phy.gui.qt import AsyncCaller, screenshot, thread_pool, Worker
@@ -201,6 +198,8 @@ class ManualClusteringView(object):
             worker.run()
             self._lock = None
 
+        self.update_status()
+
     def on_cluster(self, up):
         """Callback function when a clustering action occurs. May be overriden.
 
@@ -249,6 +248,11 @@ class ManualClusteringView(object):
         on_select = partial(self.on_select_threaded, gui=gui)
         connect(on_select, event='select')
 
+        # Add checkbox for auto update.
+        self.dock_widget.add_button(
+            icon='f021', checkable=True, checked=self.auto_update,
+            event='toggle_auto_update')(self.toggle_auto_update)
+
         # Update the GUI status message when the `self.set_status()` method
         # is called, i.e. when the `status` event is raised by the view.
         @connect(sender=self)  # pragma: no cover
@@ -277,23 +281,29 @@ class ManualClusteringView(object):
         def _set_floating():
             self.dock_widget.setFloating(False)
 
+    def set_dock_status(self, text):
+        """Set the status in the dock title bar."""
+        if hasattr(self, 'dock_widget'):
+            self.dock_widget.set_status(text)
+
+    def update_status(self):
+        """Call `self.set_status()` and `self.dock_widget.set_status()`. To override."""
+        pass
+
     # -------------------------------------------------------------------------
     # Misc public methods
     # -------------------------------------------------------------------------
 
     def toggle_auto_update(self, checked):
         """When on, the view is automatically updated when the cluster selection changes."""
+        logger.debug("%s auto update for %s.", 'Enable' if checked else 'Disable', self.name)
         self.auto_update = checked
+        emit('toggle_auto_update', self, checked)
 
     def screenshot(self, dir=None):
         """Save a PNG screenshot of the view into a given directory. By default, the screenshots
         are saved in `~/.phy/screenshots/`."""
-        date = datetime.now().strftime('%Y%m%d%H%M%S')
-        name = 'phy_screenshot_%s_%s.png' % (date, self.__class__.__name__)
-        path = (Path(dir) if dir else phy_config_dir() / 'screenshots') / name
-        path.parent.mkdir(exist_ok=True, parents=True)
-        screenshot(self.canvas, path)
-        return path
+        return screenshot(self.canvas, dir=dir)
 
     @property
     def state(self):

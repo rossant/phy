@@ -182,6 +182,15 @@ def test_gui_creator(tempdir, qtbot):
     gui.close()
 
 
+def test_gui_dock_widget(qtbot, gui):
+    gui.show()
+
+    v = _create_canvas()
+    gui.add_view(v)
+
+    qtbot.stop()
+
+
 def test_gui_menu(qtbot, gui):
     gui.get_menu('&File')
     gui.get_submenu('&File', 'Submenu')
